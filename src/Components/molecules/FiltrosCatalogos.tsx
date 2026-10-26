@@ -1,16 +1,11 @@
-interface FiltrosCatalogoProps {
+interface FiltrosProps {
   busqueda: string;
-  onBusquedaChange: (val: string) => void;
+  onBusquedaChange: (valor: string) => void;
   categoria: string;
-  onCategoriaChange: (val: string) => void;
+  onCategoriaChange: (valor: string) => void;
 }
 
-export default function FiltrosCatalogo({
-  busqueda,
-  onBusquedaChange,
-  categoria,
-  onCategoriaChange,
-}: FiltrosCatalogoProps) {
+export default function FiltrosCatalogo({ busqueda, onBusquedaChange, categoria, onCategoriaChange }: FiltrosProps) {
   return (
     <section className="row g-3 mb-4">
       <div className="col-md-7">
@@ -22,7 +17,6 @@ export default function FiltrosCatalogo({
           onChange={(e) => onBusquedaChange(e.target.value)}
         />
       </div>
-
       <div className="col-md-5">
         <select
           className="form-select form-select-lg"

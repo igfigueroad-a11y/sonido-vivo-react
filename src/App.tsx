@@ -4,6 +4,7 @@ import { TiendaProvider } from './context/TiendaContext';
 import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
 import TiendaPage from './pages/TiendaPage';
+import RecursosPage from './pages/RecursosPage'; 
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/tienda" element={<TiendaPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/recursos" element={<RecursosPage />} /> 
         </Routes>
       </BrowserRouter>
     </TiendaProvider>

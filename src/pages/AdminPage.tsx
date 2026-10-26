@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent, useContext } from 'react';
+import { useState, useEffect, FormEvent, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TiendaContext } from '../context/TiendaContext';
 import type { producto } from '../types';
@@ -6,7 +6,6 @@ import type { producto } from '../types';
 export default function AdminPage() {
   const navigate = useNavigate();
   
-  // Consumimos el estado global
   const { productos, setProductos } = useContext(TiendaContext);
   
   const [busqueda, setBusqueda] = useState('');
@@ -49,7 +48,7 @@ export default function AdminPage() {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'stock' || name === 'precio' ? Number(value) : value
+      [name]: (name === 'stock' || name === 'precio') ? (value === '' ? '' : Number(value)) : value
     }));
   };
 
@@ -67,7 +66,23 @@ export default function AdminPage() {
 
   const guardarProducto = (e: FormEvent) => {
     e.preventDefault();
-    if (formData.stock < 0 || formData.precio < 0) {
+    
+    // 1. VALIDACIÓN MANUAL DE CAMPOS VACÍOS
+    if (
+      String(formData.codigo).trim() === '' || 
+      String(formData.categoria).trim() === '' || 
+      String(formData.modelo).trim() === '' || 
+      String(formData.marca).trim() === '' || 
+      String(formData.descripcion).trim() === '' || 
+      String(formData.stock).trim() === '' || 
+      String(formData.precio).trim() === ''
+    ) {
+      alert("Por favor, completa todos los campos obligatorios.");
+      return;
+    }
+
+    // 2. VALIDACIÓN DE NÚMEROS NEGATIVOS
+    if (Number(formData.stock) < 0 || Number(formData.precio) < 0) {
       alert("El stock y el precio no pueden ser negativos.");
       return;
     }
@@ -220,16 +235,16 @@ export default function AdminPage() {
                 <h5 className="modal-title fw-bold">{isEditing ? 'Editar Producto' : 'Nuevo Producto'}</h5>
                 <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
               </div>
-              <form onSubmit={guardarProducto}>
+              <form onSubmit={guardarProducto} noValidate>
                 <div className="modal-body">
                   <div className="row g-3">
                     <div className="col-md-6">
                       <label className="form-label">Código</label>
-                      <input type="text" name="codigo" className="form-control" value={formData.codigo} onChange={handleInputChange} required disabled={isEditing} />
+                      <input type="text" name="codigo" className="form-control" value={formData.codigo} onChange={handleInputChange} disabled={isEditing} />
                     </div>
                     <div className="col-md-6">
                       <label className="form-label">Categoría</label>
-                      <select name="categoria" className="form-select" value={formData.categoria} onChange={handleInputChange} required>
+                      <select name="categoria" className="form-select" value={formData.categoria} onChange={handleInputChange}>
                         <option value="">Selecciona una categoría</option>
                         <option value="Guitarras Acústicas">Guitarras Acústicas</option>
                         <option value="Guitarras Eléctricas">Guitarras Eléctricas</option>
@@ -244,27 +259,27 @@ export default function AdminPage() {
                     </div>
                     <div className="col-md-6">
                       <label className="form-label">Modelo</label>
-                      <input type="text" name="modelo" className="form-control" value={formData.modelo} onChange={handleInputChange} required />
+                      <input type="text" name="modelo" className="form-control" value={formData.modelo} onChange={handleInputChange} />
                     </div>
                     <div className="col-md-6">
                       <label className="form-label">Marca</label>
-                      <input type="text" name="marca" className="form-control" value={formData.marca} onChange={handleInputChange} required />
+                      <input type="text" name="marca" className="form-control" value={formData.marca} onChange={handleInputChange} />
                     </div>
                     <div className="col-md-4">
                       <label className="form-label">Stock</label>
-                      <input type="number" name="stock" min="0" className="form-control" value={formData.stock} onChange={handleInputChange} required />
+                      <input type="number" name="stock" className="form-control" value={formData.stock} onChange={handleInputChange} />
                     </div>
                     <div className="col-md-8">
                       <label className="form-label">Precio (CLP)</label>
-                      <input type="number" name="precio" min="0" className="form-control" value={formData.precio} onChange={handleInputChange} required />
+                      <input type="number" name="precio" className="form-control" value={formData.precio} onChange={handleInputChange} />
                     </div>
                     <div className="col-12">
                       <label className="form-label">Ruta de imagen</label>
-                      <input type="text" name="imagen" className="form-control" value={formData.imagen} onChange={handleInputChange} placeholder="/imagenes/producto.jpg" />
+                      <input type="text" name="imagen" className="form-control" value={formData.imagen} onChange={handleInputChange} placeholder="imagenes/producto.jpg" />
                     </div>
                     <div className="col-12">
                       <label className="form-label">Descripción</label>
-                      <textarea name="descripcion" className="form-control" rows={3} value={formData.descripcion} onChange={handleInputChange} required></textarea>
+                      <textarea name="descripcion" className="form-control" rows={3} value={formData.descripcion} onChange={handleInputChange}></textarea>
                     </div>
                   </div>
                 </div>

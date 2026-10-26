@@ -1,13 +1,13 @@
 import type { ItemCarrito } from '../../types';
 
-interface CartOffcanvasProps {
+interface CartProps {
   carrito: ItemCarrito[];
   onCambiarCantidad: (codigo: string, cambio: number) => void;
   onFinalizarCompra: () => void;
 }
 
-export default function CartOffcanvas({ carrito, onCambiarCantidad, onFinalizarCompra }: CartOffcanvasProps) {
-  const total = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
+export default function CartOffcanvas({ carrito, onCambiarCantidad, onFinalizarCompra }: CartProps) {
+  const precioTotal = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
   return (
     <div className="offcanvas offcanvas-end" tabIndex={-1} id="offcanvasCart" aria-labelledby="offcanvasCartLabel">
@@ -44,13 +44,9 @@ export default function CartOffcanvas({ carrito, onCambiarCantidad, onFinalizarC
         <div className="border-top pt-3 mt-auto">
           <div className="d-flex justify-content-between h5 fw-bold mb-3 text-dark">
             <span>Total:</span>
-            <span>${total.toLocaleString('es-CL')}</span>
+            <span>${precioTotal.toLocaleString('es-CL')}</span>
           </div>
-          <button 
-            className="btn btn-minimal btn-lg w-100" 
-            onClick={onFinalizarCompra}
-            disabled={carrito.length === 0}
-          >
+          <button className="btn btn-minimal btn-lg w-100" onClick={onFinalizarCompra}>
             Finalizar Compra
           </button>
         </div>
