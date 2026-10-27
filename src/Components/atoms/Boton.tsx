@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 interface BotonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
-  variante?: 'minimal' | 'outline-minimal' | 'danger' | 'light';
+  variante?: 'minimal' | 'outline-minimal' | 'danger' | 'light' |'dark';
 }
 
 export default function Boton({ 

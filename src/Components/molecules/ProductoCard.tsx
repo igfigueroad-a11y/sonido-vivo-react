@@ -1,41 +1,43 @@
+import { useState } from 'react';
+import Boton from '../atoms/Boton';
+import ModalDetalleProducto from './ModalDetalleProducto';
 import type { producto } from '../../types';
-import Boton from '../atoms/Boton'; 
 
-interface ProductoCardProps {
+interface Props {
   producto: producto;
   onAgregarCarrito: (prod: producto) => void;
 }
 
-export default function ProductoCard({ producto, onAgregarCarrito }: ProductoCardProps) {
+export default function ProductoCard({ producto, onAgregarCarrito }: Props) {
+  const [verModal, setVerModal] = useState(false);
+
   return (
-    <div className="col">
-      <div className="card card-minimal h-100">
+    <>
+      <div className="card h-100 shadow-sm border-0 bg-white">
+        <img src={producto.imagen} className="card-img-top p-3" alt={producto.modelo} style={{ height: '220px', objectFit: 'contain' }} />
         <div className="card-body d-flex flex-column">
-          <span className="badge badge-minimal text-uppercase mb-2 align-self-start" style={{ fontSize: '0.7rem' }}>
-            {producto.categoria}
-          </span>
-          <img src={producto.imagen} className="card-img-top mb-3" alt={producto.modelo} />
-          <h5 className="card-title fw-bold text-dark mb-1">{producto.modelo}</h5>
-          <h6 className="card-subtitle text-secondary mb-2 fs-6">{producto.marca}</h6>
-          <p className="card-text text-muted small flex-grow-1">{producto.descripcion}</p>
-          <div className="pt-3 border-top d-flex justify-content-between align-items-center">
-            <div>
-              <span className="fs-5 fw-bold text-dark me-1">${producto.precio.toLocaleString('es-CL')}</span>
-              <small className="text-muted d-block">(Stock: {producto.stock})</small>
-            </div>
-            
-            <Boton 
-              variante="minimal"
-              className="btn-sm px-3" 
-              onClick={() => onAgregarCarrito(producto)}
-              disabled={producto.stock <= 0}
-            >
-              <i className="bi bi-cart-plus me-1"></i> {producto.stock <= 0 ? "Sin stock" : "Agregar"}
+          <h5 className="card-title fw-bold text-dark">{producto.modelo}</h5>
+          <p className="text-muted small mb-2">{producto.marca} | {producto.categoria}</p>
+          <h4 className="fw-bold mb-3">${producto.precio.toLocaleString('es-CL')}</h4>
+          
+          <div className="mt-auto d-flex gap-2">
+            <Boton onClick={() => onAgregarCarrito(producto)} disabled={producto.stock === 0} className="w-50">
+              {producto.stock > 0 ? 'Comprar' : 'Agotado'}
             </Boton>
-            
+            <Boton variante="outline-minimal" onClick={() => setVerModal(true)} className="w-50">
+              Ver Detalle
+            </Boton>
           </div>
         </div>
       </div>
-    </div>
+
+      {verModal && (
+        <ModalDetalleProducto 
+          producto={producto} 
+          onClose={() => setVerModal(false)} 
+          onAgregarCarrito={onAgregarCarrito} 
+        />
+      )}
+    </>
   );
 }

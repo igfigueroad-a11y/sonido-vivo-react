@@ -1,13 +1,23 @@
+import { useNavigate } from 'react-router-dom';
 import type { ItemCarrito } from '../../types';
 
 interface CartProps {
   carrito: ItemCarrito[];
   onCambiarCantidad: (codigo: string, cambio: number) => void;
-  onFinalizarCompra: () => void;
+  onFinalizarCompra?: () => void; 
 }
 
 export default function CartOffcanvas({ carrito, onCambiarCantidad, onFinalizarCompra }: CartProps) {
+  const navigate = useNavigate(); // Instanciamos el hook de React Router
   const precioTotal = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
+
+ 
+  const handleCheckout = () => {
+    if (onFinalizarCompra) {
+      onFinalizarCompra();
+    }
+    navigate('/checkout'); 
+  };
 
   return (
     <div className="offcanvas offcanvas-end" tabIndex={-1} id="offcanvasCart" aria-labelledby="offcanvasCartLabel">
@@ -46,7 +56,12 @@ export default function CartOffcanvas({ carrito, onCambiarCantidad, onFinalizarC
             <span>Total:</span>
             <span>${precioTotal.toLocaleString('es-CL')}</span>
           </div>
-          <button className="btn btn-minimal btn-lg w-100" onClick={onFinalizarCompra}>
+          <button 
+            className="btn btn-minimal btn-lg w-100" 
+            onClick={handleCheckout}
+            data-bs-dismiss="offcanvas" 
+            disabled={carrito.length === 0} 
+          >
             Finalizar Compra
           </button>
         </div>

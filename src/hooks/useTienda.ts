@@ -3,8 +3,8 @@ import { TiendaContext } from '../context/TiendaContext';
 import type { producto, ItemCarrito } from '../types';
 
 export function useTienda() {
-  // Consumimos los productos desde el estado global
-  const { productos, setProductos } = useContext(TiendaContext);
+  // Consumimos productos y el usuario desde el estado global
+  const { productos, setProductos, usuarioActual, login, logout } = useContext(TiendaContext);
   
   const [busqueda, setBusqueda] = useState('');
   const [categoria, setCategoria] = useState('');
@@ -47,7 +47,6 @@ export function useTienda() {
   };
 
   const handleFinalizarCompra = () => {
-    alert("¡Compra realizada con éxito!");
     setCarrito([]);
   };
 
@@ -56,6 +55,8 @@ export function useTienda() {
   return {
     busqueda, setBusqueda, categoria, setCategoria,
     productosFiltrados, carrito, cantidadTotal,
-    handleAgregarCarrito, handleCambiarCantidad, handleFinalizarCompra
+    handleAgregarCarrito, handleCambiarCantidad, handleFinalizarCompra,
+    // Exportamos las funciones del usuario
+    usuarioActual, login, logout
   };
 }

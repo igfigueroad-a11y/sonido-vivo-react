@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
 import TiendaPage from './pages/TiendaPage';
 import RecursosPage from './pages/RecursosPage'; 
+import CheckoutPage from './pages/CheckoutPage';
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/recursos" element={<RecursosPage />} /> 
+          <Route path="/checkout" element={<CheckoutPage />} />
         </Routes>
       </BrowserRouter>
     </TiendaProvider>

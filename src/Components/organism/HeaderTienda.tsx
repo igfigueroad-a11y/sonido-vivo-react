@@ -1,10 +1,20 @@
-import { Link } from 'react-router-dom'; 
+import { useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { TiendaContext } from '../../context/TiendaContext';
 
 interface HeaderTiendaProps {
   cantidadCarrito: number;
 }
 
 export default function HeaderTienda({ cantidadCarrito }: HeaderTiendaProps) {
+  const { usuarioActual, logout } = useContext(TiendaContext);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/tienda');
+  };
+
   return (
     <header className="py-3 header-fijo">
       <div className="container d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -15,12 +25,20 @@ export default function HeaderTienda({ cantidadCarrito }: HeaderTiendaProps) {
 
         <div className="d-flex gap-2 align-items-center">
           
-          {/* Cambiamos el botón por un Link hacia el Login */}
-          <Link to="/login" className="btn btn-outline-minimal">
-            <i className="bi bi-person-circle me-1" aria-hidden="true" />
-            Iniciar Sesión
-          </Link>
+          {/* Saludo si hay sesión o Botón de Iniciar Sesión */}
+          {usuarioActual ? (
+            <span className="text-white fw-semibold d-flex align-items-center gap-2">
+              <i className="bi bi-person-circle" aria-hidden="true" />
+              Hola, {usuarioActual.nombre}
+            </span>
+          ) : (
+            <Link to="/login" className="btn btn-outline-minimal">
+              <i className="bi bi-person-circle me-1" aria-hidden="true" />
+              Iniciar Sesión
+            </Link>
+          )}
 
+          {/* Menú desplegable de Recursos */}
           <div className="dropdown">
             <button
               type="button"
@@ -32,18 +50,26 @@ export default function HeaderTienda({ cantidadCarrito }: HeaderTiendaProps) {
               Recursos
             </button>
             <ul className="dropdown-menu dropdown-menu-end">
-              {/* Cambiamos el href estático por un Link hacia /recursos */}
               <li>
                 <Link to="/recursos" className="dropdown-item">
                   <i className="bi bi-play-circle me-2"></i> Videos y consejos
                 </Link>
               </li>
-              <li><a className="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalInformacion"><i className="bi bi-info-circle me-2"></i> Información de la tienda</a></li>
+              <li>
+                <a className="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalInformacion">
+                  <i className="bi bi-info-circle me-2"></i> Información de la tienda
+                </a>
+              </li>
               <li><hr className="dropdown-divider" /></li>
-              <li><a className="dropdown-item" href="https://www.youtube.com/results?search_query=consejos+para+elegir+un+instrumento+musical" target="_blank" rel="noopener noreferrer"><i className="bi bi-youtube me-2"></i> Ver videos externos</a></li>
+              <li>
+                <a className="dropdown-item" href="https://www.youtube.com/results?search_query=consejos+para+elegir+un+instrumento+musical" target="_blank" rel="noopener noreferrer">
+                  <i className="bi bi-youtube me-2"></i> Ver videos externos
+                </a>
+              </li>
             </ul>
           </div>
 
+          {/* Botón del Carrito */}
           <button
             type="button"
             className="btn btn-minimal"
@@ -54,21 +80,20 @@ export default function HeaderTienda({ cantidadCarrito }: HeaderTiendaProps) {
             Carrito ({cantidadCarrito})
           </button>
 
-          {/* Mantenemos el botón de cerrar sesión por ahora */}
-          <button
-            type="button"
-            className="btn btn-outline-minimal"
-            aria-label="Cerrar sesión"
-            onClick={() => {
-                localStorage.removeItem("usuarioAutenticado");
-                localStorage.removeItem("rolUsuario");
-                window.location.reload(); // Recarga simple para limpiar sesión por ahora
-            }}
-          >
-            <i className="bi bi-box-arrow-right" aria-hidden="true" />
-          </button>
+          {/* Botón de Cerrar Sesión (Solo se muestra si hay un usuario logueado) */}
+          {usuarioActual && (
+            <button
+              type="button"
+              className="btn btn-outline-danger"
+              aria-label="Cerrar sesión"
+              title="Cerrar sesión"
+              onClick={handleLogout}
+            >
+              <i className="bi bi-box-arrow-right" aria-hidden="true" />
+            </button>
+          )}
         </div>
       </div>
     </header>
-  )
+  );
 }

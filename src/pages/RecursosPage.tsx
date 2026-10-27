@@ -1,12 +1,22 @@
-import { Link } from 'react-router-dom';
-import FooterTienda from '../Components/organism/FooterTienda'; // Reutilizamos tu footer
+import { useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { TiendaContext } from '../context/TiendaContext';
+import FooterTienda from '../Components/organism/FooterTienda';
 
 export default function RecursosPage() {
+  const { usuarioActual, logout } = useContext(TiendaContext);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/tienda');
+  };
+
   return (
     <div style={{ backgroundColor: 'var(--bg-main)', minHeight: '100vh' }}>
       
       <header className="py-3 header-fijo">
-        <div className="container d-flex justify-content-between align-items-center">
+        <div className="container d-flex justify-content-between align-items-center flex-wrap gap-3">
           <div>
             <h1 className="h4 text-white fw-bold mb-0">SONIDO VIVO</h1>
             <small className="text-white-50">Recursos para músicos</small>
@@ -17,10 +27,32 @@ export default function RecursosPage() {
               <i className="bi bi-house me-1"></i>
               Tienda
             </Link>
-            <Link to="/login" className="btn btn-minimal">
-              <i className="bi bi-person me-1"></i>
-              Iniciar sesión
-            </Link>
+
+            {/* Saludo dinámico o botón de Iniciar Sesión persistente */}
+            {usuarioActual ? (
+              <span className="text-white fw-semibold d-flex align-items-center gap-2">
+                <i className="bi bi-person-circle" aria-hidden="true" />
+                Hola, {usuarioActual.nombre}
+              </span>
+            ) : (
+              <Link to="/login" className="btn btn-minimal text-white">
+                <i className="bi bi-person me-1"></i>
+                Iniciar sesión
+              </Link>
+            )}
+
+            {/* Botón de Cerrar Sesión si hay usuario activo */}
+            {usuarioActual && (
+              <button
+                type="button"
+                className="btn btn-outline-danger"
+                aria-label="Cerrar sesión"
+                title="Cerrar sesión"
+                onClick={handleLogout}
+              >
+                <i className="bi bi-box-arrow-right" aria-hidden="true" />
+              </button>
+            )}
           </div>
         </div>
       </header>

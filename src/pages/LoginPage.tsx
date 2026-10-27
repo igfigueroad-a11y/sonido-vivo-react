@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useContext, useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { TiendaContext } from '../context/TiendaContext';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -7,49 +8,88 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const navigate = useNavigate();
+const { login } = useContext(TiendaContext);
+const handleSubmit = (e: FormEvent) => {
+  e.preventDefault();
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  const nombreUsuario = usuario.trim();
 
-    if (usuario.trim() === "" || password.trim() === "") {
-      alert("Por favor, completa los campos obligatorios.");
+  if (nombreUsuario === '' || password.trim() === '') {
+    alert('Por favor, completa los campos obligatorios.');
+    return;
+  }
+
+  const ingresar = (
+    rol: 'admin' | 'cliente',
+    esRegistro = false,
+  ) => {
+    login({
+      nombre: nombreUsuario,
+      rol,
+    });
+
+    alert(
+      esRegistro
+        ? `¡Cuenta creada con éxito! Bienvenido/a, ${nombreUsuario}.`
+        : `¡Ingresaste correctamente! Hola, ${nombreUsuario}.`,
+    );
+
+    navigate(rol === 'admin' ? '/admin' : '/tienda');
+  };
+
+  if (isLogin) {
+    if (
+      nombreUsuario === 'admin' &&
+      password === 'admin123'
+    ) {
+      ingresar('admin');
       return;
     }
 
-    if (isLogin) {
-      if (usuario === "admin" && password === "admin123") {
-        localStorage.setItem("usuarioAutenticado", usuario);
-        localStorage.setItem("rolUsuario", "admin");
-        navigate('/admin');
-      } else if (usuario === "usuario" && password === "1234") {
-        localStorage.setItem("usuarioAutenticado", usuario);
-        localStorage.setItem("rolUsuario", "cliente");
-        navigate('/tienda');
-      } else {
-        const guardadoPassword = localStorage.getItem(`user_${usuario}`);
-        if (guardadoPassword && guardadoPassword === password) {
-          localStorage.setItem("usuarioAutenticado", usuario);
-          localStorage.setItem("rolUsuario", "cliente");
-          navigate('/tienda');
-        } else {
-          alert("Usuario o contraseña incorrectos. Inténtalo de nuevo.");
-        }
-      }
-    } else {
-      if (email.trim() === "") {
-        alert("Por favor, ingresa un correo electrónico.");
-        return;
-      }
-      
-      localStorage.setItem(`user_${usuario}`, password);
-      localStorage.setItem("usuarioAutenticado", usuario);
-      localStorage.setItem("rolUsuario", "cliente");
-      
-      alert("¡Cuenta creada con éxito! Iniciando sesión automáticamente...");
-      navigate('/tienda');
+    if (
+      nombreUsuario === 'usuario' &&
+      password === '1234'
+    ) {
+      ingresar('cliente');
+      return;
     }
-  };
 
+    const guardadoPassword = localStorage.getItem(
+      `user_${nombreUsuario}`,
+    );
+
+    if (
+      guardadoPassword !== null &&
+      guardadoPassword === password
+    ) {
+      ingresar('cliente');
+      return;
+    }
+
+    alert('Usuario o contraseña incorrectos. Inténtalo de nuevo.');
+    return;
+  }
+
+  if (email.trim() === '') {
+    alert('Por favor, ingresa un correo electrónico.');
+    return;
+  }
+
+  const usuarioExiste =
+    nombreUsuario === 'admin' ||
+    nombreUsuario === 'usuario' ||
+    localStorage.getItem(`user_${nombreUsuario}`) !== null;
+
+  if (usuarioExiste) {
+    alert('Ese nombre de usuario ya está registrado. Elige otro.');
+    return;
+  }
+
+  // Conservamos el registro local de tu prototipo.
+  localStorage.setItem(`user_${nombreUsuario}`, password);
+
+  ingresar('cliente', true);
+};
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setUsuario('');
