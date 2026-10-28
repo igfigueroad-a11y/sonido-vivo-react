@@ -1,5 +1,7 @@
+import { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ItemCarrito } from '../../types';
+import { TiendaContext } from '../../context/TiendaContext';// Asegúrate de ajustar la ruta de importación si es necesario
 
 interface CartProps {
   carrito: ItemCarrito[];
@@ -8,11 +10,18 @@ interface CartProps {
 }
 
 export default function CartOffcanvas({ carrito, onCambiarCantidad, onFinalizarCompra }: CartProps) {
-  const navigate = useNavigate(); // Instanciamos el hook de React Router
+  const navigate = useNavigate();
+  const { usuarioActual } = useContext(TiendaContext); // Consumimos el estado del usuario global
   const precioTotal = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
- 
   const handleCheckout = () => {
+    // Validamos si NO hay un usuario autenticado (invitado)
+    if (!usuarioActual) {
+      alert('Debes ingresar como un usuario existente o crear una cuenta para finalizar la compra.');
+      navigate('/login');
+      return;
+    }
+
     if (onFinalizarCompra) {
       onFinalizarCompra();
     }

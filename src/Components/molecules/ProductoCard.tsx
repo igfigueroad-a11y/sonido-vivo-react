@@ -22,7 +22,7 @@ export default function ProductoCard({ producto, onAgregarCarrito }: Props) {
           
           <div className="mt-auto d-flex gap-2">
             <Boton onClick={() => onAgregarCarrito(producto)} disabled={producto.stock === 0} className="w-50">
-              {producto.stock > 0 ? 'Comprar' : 'Agotado'}
+              {producto.stock > 0 ? 'comprar' : 'Agotado'}
             </Boton>
             <Boton variante="outline-minimal" onClick={() => setVerModal(true)} className="w-50">
               Ver Detalle

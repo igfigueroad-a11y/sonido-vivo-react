@@ -56,7 +56,7 @@ export function useTienda() {
     busqueda, setBusqueda, categoria, setCategoria,
     productosFiltrados, carrito, cantidadTotal,
     handleAgregarCarrito, handleCambiarCantidad, handleFinalizarCompra,
-    // Exportamos las funciones del usuario
+
     usuarioActual, login, logout
   };
 }
