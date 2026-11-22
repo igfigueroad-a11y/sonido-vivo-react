@@ -3,8 +3,8 @@ import FiltrosCatalogo from '../Components/molecules/FiltrosCatalogos';
 
 describe('Molécula: FiltrosCatalogo', () => {
   const setup = () => {
-    const mockBusqueda = jasmine.createSpy('onBusquedaChange');
-    const mockCategoria = jasmine.createSpy('onCategoriaChange');
+    const mockBusqueda = vi.fn('onBusquedaChange');
+    const mockCategoria = vi.fn('onCategoriaChange');
     render(
       <FiltrosCatalogo 
         busqueda="" onBusquedaChange={mockBusqueda} 

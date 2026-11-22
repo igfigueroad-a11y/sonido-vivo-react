@@ -1,4 +1,4 @@
-/// <reference types="jasmine" />
+/// <reference types="vitest/globals" />
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import CheckoutPage from '../pages/CheckoutPage';

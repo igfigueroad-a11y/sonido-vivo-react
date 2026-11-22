@@ -1,4 +1,4 @@
-/// <reference types="jasmine" />
+/// <reference types="vitest/globals" />
 import { render, screen, fireEvent } from '@testing-library/react';
 import ProductoCard from '../Components/molecules/ProductoCard';
 
@@ -15,7 +15,7 @@ describe('Molécula: ProductoCard', () => {
   });
 
   it('Permite agregar al carrito si hay stock', () => {
-    const mockAdd = jasmine.createSpy('onAgregarCarrito');
+    const mockAdd = vi.fn('onAgregarCarrito');
     render(<ProductoCard producto={productoBase} onAgregarCarrito={mockAdd} />);
     
     // Buscamos el botón "Comprar" exacto de tu componente

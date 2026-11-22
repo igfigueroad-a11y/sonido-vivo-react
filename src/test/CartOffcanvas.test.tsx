@@ -5,12 +5,12 @@ import CartOffcanvas from '../Components/organism/CartOffcanvas';
 import type { ItemCarrito } from '../types';
 
 describe('Organismo: CartOffcanvas', () => {
-  const mockCambiar = jasmine.createSpy('onCambiarCantidad');
-  const mockFinalizar = jasmine.createSpy('onFinalizarCompra');
+  const mockCambiar = vi.fn('onCambiarCantidad');
+  const mockFinalizar = vi.fn('onFinalizarCompra');
 
   beforeEach(() => {
-    mockCambiar.calls.reset();
-    mockFinalizar.calls.reset();
+    mockCambiar.mockClear();
+    mockFinalizar.mockClear();
   });
 
   it('Muestra mensaje de carrito vacío', () => {

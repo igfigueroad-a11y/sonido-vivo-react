@@ -8,7 +8,7 @@ describe('Átomo: Boton', () => {
   });
 
   it('Llama a la función onClick al ser presionado', () => {
-    const mockOnClick = jasmine.createSpy('onClick');
+    const mockOnClick = vi.fn('onClick');
     render(<Boton onClick={mockOnClick}>Comprar</Boton>);
     fireEvent.click(screen.getByRole('button', { name: /comprar/i }));
     expect(mockOnClick).toHaveBeenCalled();
