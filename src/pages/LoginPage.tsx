@@ -33,17 +33,31 @@ export default function LoginPage() {
     setCargando(true);
 
     try {
-      const endpoint = isLogin ? `${API_URL}/login` : `${API_URL}/registro`;
-      const payload = isLogin
-        ? { nombre: nombreUsuario, password }
-        : { nombre: nombreUsuario, email: email.trim(), password };
+      if (!isLogin) {
+        const resRegistro = await fetch(`${API_URL}/registro`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nombre: nombreUsuario,
+            email: email.trim(),
+            password,
+          }),
+        });
 
-      const respuesta = await fetch(endpoint, {
+        const dataRegistro = await resRegistro.json();
+        if (!resRegistro.ok) {
+          mostrarToast(
+            dataRegistro.mensaje || 'No se pudo registrar la cuenta. Verifica los datos.',
+            'error',
+          );
+          return;
+        }
+      }
+
+      const respuesta = await fetch(`${API_URL}/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: nombreUsuario, password }),
       });
 
       const data = await respuesta.json();
@@ -54,8 +68,11 @@ export default function LoginPage() {
       }
 
       login({
+        id: data.id,
         nombre: data.nombre,
+        email: data.email,
         rol: data.rol,
+        token: data.token,
       });
 
       mostrarToast(

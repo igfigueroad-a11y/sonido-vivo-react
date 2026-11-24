@@ -50,14 +50,14 @@ interface ErroresCheckout {
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { carrito, usuarioActual, vaciarCarrito, recargarProductos, mostrarToast } =
+  const { carrito, usuarioActual, token, logout, vaciarCarrito, recargarProductos, mostrarToast } =
     useContext(TiendaContext);
 
   const [tipoEntrega, setTipoEntrega] = useState<'RETIRO_TIENDA' | 'ENVIO_STARKEN'>('ENVIO_STARKEN');
 
   const [datos, setDatos] = useState({
     nombre: usuarioActual?.nombre || '',
-    correo: '',
+    correo: usuarioActual?.email || '',
     sucursalRetiro: SUCURSALES_RETIRO[0],
     region: 'Región Metropolitana',
     comuna: '',
@@ -201,6 +201,14 @@ export default function CheckoutPage() {
       return;
     }
 
+    const jwt = token || localStorage.getItem('tokenJWT') || '';
+    if (!jwt) {
+      mostrarToast('Tu sesión no tiene token JWT activo. Vuelve a iniciar sesión.', 'warning');
+      logout();
+      navigate('/login');
+      return;
+    }
+
     setProcesando(true);
 
     try {
@@ -230,9 +238,19 @@ export default function CheckoutPage() {
 
       const respuesta = await fetch('http://localhost:8083/api/ordenes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${jwt}`,
+        },
         body: JSON.stringify(payloadOrden),
       });
+
+      if (respuesta.status === 401 || respuesta.status === 403) {
+        mostrarToast('Tu sesión expiró. Vuelve a iniciar sesión para confirmar el pago.', 'warning');
+        logout();
+        navigate('/login');
+        return;
+      }
 
       const data = await respuesta.json();
 
@@ -285,9 +303,9 @@ export default function CheckoutPage() {
             </div>
 
             <form onSubmit={procesarPago} className="row g-4" noValidate>
-              {/* Columna Izquierda */}
+
               <div className="col-lg-7 d-flex flex-column gap-4">
-                {/* 1. Datos del Comprador y Modalidad de Entrega */}
+    
                 <div className="card card-minimal p-4">
                   <h5 className="fw-bold mb-3 border-bottom pb-2 text-dark">
                     <i className="bi bi-person-vcard me-2"></i>1. Datos del Cliente y Entrega
@@ -330,7 +348,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* Selector Retiro en Tienda vs Envío Starken */}
+    
                   <label className="form-label text-muted small fw-bold d-block mb-2">
                     Modalidad de Entrega
                   </label>
@@ -380,7 +398,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* Campos dinámicos según tipo de entrega */}
+        
                   {tipoEntrega === 'RETIRO_TIENDA' ? (
                     <div className="bg-light p-3 rounded border">
                       <label className="form-label small fw-bold text-dark">
@@ -486,7 +504,7 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                {/* 2. Método de Pago */}
+        
                 <div className="card card-minimal p-4">
                   <h5 className="fw-bold mb-3 border-bottom pb-2 text-dark">
                     <i className="bi bi-credit-card-2-front me-2"></i>2. Método de Pago
@@ -595,7 +613,7 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Columna Derecha: Resumen de Orden */}
+      
               <div className="col-lg-5">
                 <div className="card card-minimal p-4 position-sticky" style={{ top: '95px' }}>
                   <h5 className="fw-bold mb-3 border-bottom pb-2 text-dark">

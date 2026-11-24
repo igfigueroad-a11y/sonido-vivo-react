@@ -19,7 +19,7 @@ interface TicketContacto {
   fechaPrueba: string;
   mensaje: string;
   respuestaAdmin?: string;
-  estado: 'PENDIENTE' | 'RESPONDIDA';
+  estado: 'PENDIENTE' | 'RESPONDIDA' | 'APROBADA' | 'DESAPROBADA';
   fechaCreacion: string;
 }
 
@@ -41,12 +41,21 @@ interface ResenaAdmin {
 
 export default function AdminPage() {
   const navigate = useNavigate();
-  const { productos, setProductos, usuarioActual, logout, mostrarToast } =
+  const { productos, setProductos, usuarioActual, token, logout, mostrarToast } =
     useContext(TiendaContext);
 
   const [tabActiva, setTabActiva] = useState<
     'catalogo' | 'usuarios' | 'tickets' | 'resenas'
   >('catalogo');
+
+  // Helper de cabeceras con Token JWT
+  const getAuthHeaders = (conJson = false): HeadersInit => {
+    const jwt = token || localStorage.getItem('tokenJWT') || '';
+    return {
+      ...(conJson ? { 'Content-Type': 'application/json' } : {}),
+      ...(jwt ? { Authorization: `Bearer ${jwt}` } : {}),
+    };
+  };
 
   // Estados de Catálogo
   const [busqueda, setBusqueda] = useState('');
@@ -70,6 +79,7 @@ export default function AdminPage() {
   const [usuarios, setUsuarios] = useState<UsuarioRegistrado[]>([]);
   const [cargandoUsuarios, setCargandoUsuarios] = useState(false);
   const [busquedaUsuario, setBusquedaUsuario] = useState('');
+  const [usuarioAEliminar, setUsuarioAEliminar] = useState<UsuarioRegistrado | null>(null);
 
   // Estados de Consultas y Soporte (ms-contacto)
   const [tickets, setTickets] = useState<TicketContacto[]>([]);
@@ -93,10 +103,14 @@ export default function AdminPage() {
   const cargarUsuarios = async () => {
     setCargandoUsuarios(true);
     try {
-      const res = await fetch(API_USUARIOS);
+      const res = await fetch(API_USUARIOS, {
+        headers: getAuthHeaders(),
+      });
       if (res.ok) {
         const data: UsuarioRegistrado[] = await res.json();
         setUsuarios(data);
+      } else if (res.status === 401 || res.status === 403) {
+        mostrarToast('Sesión expirada o sin permisos JWT. Vuelve a iniciar sesión.', 'warning');
       } else {
         mostrarToast('No se pudo cargar la lista de usuarios.', 'error');
       }
@@ -111,7 +125,9 @@ export default function AdminPage() {
   const cargarTickets = async () => {
     setCargandoTickets(true);
     try {
-      const res = await fetch(API_CONTACTOS);
+      const res = await fetch(API_CONTACTOS, {
+        headers: getAuthHeaders(),
+      });
       if (res.ok) {
         const data: TicketContacto[] = await res.json();
         setTickets(data);
@@ -129,7 +145,9 @@ export default function AdminPage() {
   const cargarResenas = async () => {
     setCargandoResenas(true);
     try {
-      const res = await fetch(API_RESENAS);
+      const res = await fetch(API_RESENAS, {
+        headers: getAuthHeaders(),
+      });
       if (res.ok) {
         const data: ResenaAdmin[] = await res.json();
         setResenas(data);
@@ -234,7 +252,7 @@ export default function AdminPage() {
       const url = isEditing ? `${API_PRODUCTOS}/${formData.codigo}` : API_PRODUCTOS;
       const respuesta = await fetch(url, {
         method: isEditing ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(true),
         body: JSON.stringify({
           ...formData,
           codigo: formData.codigo.trim().toUpperCase(),
@@ -242,6 +260,11 @@ export default function AdminPage() {
           precio: Number(formData.precio),
         }),
       });
+
+      if (respuesta.status === 401 || respuesta.status === 403) {
+        mostrarToast('Token JWT inválido o expirado. Inicia sesión nuevamente.', 'error');
+        return;
+      }
 
       const data = await respuesta.json();
 
@@ -273,10 +296,11 @@ export default function AdminPage() {
     try {
       const respuesta = await fetch(`${API_PRODUCTOS}/${productoAEliminar.codigo}`, {
         method: 'DELETE',
+        headers: getAuthHeaders(),
       });
 
       if (!respuesta.ok) {
-        mostrarToast('No se pudo eliminar el producto en el servidor.', 'error');
+        mostrarToast('No se pudo eliminar el producto (verifica tu sesión JWT).', 'error');
         return;
       }
 
@@ -298,6 +322,7 @@ export default function AdminPage() {
     try {
       const respuesta = await fetch(`${API_USUARIOS}/${user.id}/rol?rol=${nuevoRol}`, {
         method: 'PATCH',
+        headers: getAuthHeaders(),
       });
 
       if (!respuesta.ok) {
@@ -314,45 +339,75 @@ export default function AdminPage() {
     }
   };
 
+  const confirmarEliminarUsuario = async () => {
+    if (!usuarioAEliminar) return;
+
+    try {
+      const respuesta = await fetch(`${API_USUARIOS}/${usuarioAEliminar.id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+
+      if (!respuesta.ok) {
+        mostrarToast('No se pudo eliminar la cuenta del usuario.', 'error');
+        return;
+      }
+
+      setUsuarios((prev) => prev.filter((u) => u.id !== usuarioAEliminar.id));
+      mostrarToast(`Cuenta de ${usuarioAEliminar.nombre} eliminada.`, 'info');
+      setUsuarioAEliminar(null);
+    } catch (error) {
+      console.error('Error eliminando usuario:', error);
+      mostrarToast('Error de conexión con ms-usuarios.', 'error');
+    }
+  };
+
   const abrirModalResponder = (ticket: TicketContacto) => {
     setTicketAResponder(ticket);
     setTextoRespuesta(ticket.respuestaAdmin || '');
     setErrorRespuesta('');
   };
 
-  const enviarRespuestaTicket = async (e: FormEvent) => {
-    e.preventDefault();
+  const resolverConsulta = async (nuevoEstado: 'APROBADA' | 'DESAPROBADA') => {
     if (!ticketAResponder) return;
 
     if (textoRespuesta.trim().length < 5) {
-      setErrorRespuesta('Escribe un comentario de respuesta de al menos 5 caracteres.');
+      setErrorRespuesta(
+        nuevoEstado === 'APROBADA'
+          ? 'Escribe un comentario de confirmación (mínimo 5 caracteres).'
+          : 'Indica el motivo por el cual se desaprueba la consulta (mínimo 5 caracteres).',
+      );
       return;
     }
 
     setEnviandoRespuesta(true);
     try {
-      const res = await fetch(`${API_CONTACTOS}/${ticketAResponder.id}/responder`, {
+      const res = await fetch(`${API_CONTACTOS}/${ticketAResponder.id}/estado`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ respuesta: textoRespuesta.trim() }),
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({
+          estado: nuevoEstado,
+          respuesta: textoRespuesta.trim(),
+        }),
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
-        mostrarToast(data.mensaje || 'No se pudo enviar la respuesta.', 'error');
+        mostrarToast('No se pudo actualizar el estado de la consulta.', 'error');
         return;
       }
 
+      const data: TicketContacto = await res.json();
       setTickets((prev) => prev.map((t) => (t.id === data.id ? data : t)));
       mostrarToast(
-        `Ticket #${data.ticket} aprobado y respondido al cliente.`,
-        'success',
+        nuevoEstado === 'APROBADA'
+          ? `Consulta #${data.ticket} APROBADA correctamente.`
+          : `Consulta #${data.ticket} DESAPROBADA.`,
+        nuevoEstado === 'APROBADA' ? 'success' : 'warning',
       );
       setTicketAResponder(null);
       setTextoRespuesta('');
     } catch (error) {
-      console.error('Error respondiendo ticket:', error);
+      console.error('Error actualizando ticket:', error);
       mostrarToast('Error de conexión con ms-contacto.', 'error');
     } finally {
       setEnviandoRespuesta(false);
@@ -365,6 +420,7 @@ export default function AdminPage() {
     try {
       const res = await fetch(`${API_RESENAS}/${resenaAEliminar.id}`, {
         method: 'DELETE',
+        headers: getAuthHeaders(),
       });
 
       if (!res.ok) {
@@ -378,6 +434,19 @@ export default function AdminPage() {
     } catch (error) {
       console.error('Error eliminando reseña:', error);
       mostrarToast('Error de conexión con ms-resenas.', 'error');
+    }
+  };
+
+  const renderBadgeEstadoTicket = (estado: TicketContacto['estado']) => {
+    switch (estado) {
+      case 'APROBADA':
+        return <span className="badge bg-success">APROBADA</span>;
+      case 'DESAPROBADA':
+        return <span className="badge bg-danger">DESAPROBADA</span>;
+      case 'RESPONDIDA':
+        return <span className="badge bg-info text-dark">RESPONDIDA</span>;
+      default:
+        return <span className="badge bg-warning text-dark">PENDIENTE</span>;
     }
   };
 
@@ -600,7 +669,7 @@ export default function AdminPage() {
               <div>
                 <h5 className="fw-bold mb-1">Cuentas Registradas en MySQL</h5>
                 <small className="text-muted">
-                  Administra permisos de acceso entre clientes y administradores.
+                  Administra permisos de acceso o elimina cuentas registradas.
                 </small>
               </div>
               <div className="d-flex gap-2">
@@ -635,7 +704,7 @@ export default function AdminPage() {
                       <th>Usuario</th>
                       <th>Correo Electrónico</th>
                       <th>Rol Actual</th>
-                      <th className="text-end">Permisos</th>
+                      <th className="text-end">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -666,14 +735,24 @@ export default function AdminPage() {
                               )}
                             </td>
                             <td className="text-end">
-                              <button
-                                className="btn btn-sm btn-outline-minimal"
-                                disabled={esUsuarioActual}
-                                onClick={() => cambiarRolUsuario(u)}
-                              >
-                                <i className="bi bi-arrow-left-right me-1"></i>
-                                Cambiar a {u.rol === 'admin' ? 'Cliente' : 'Admin'}
-                              </button>
+                              <div className="d-inline-flex gap-2">
+                                <button
+                                  className="btn btn-sm btn-outline-minimal"
+                                  disabled={esUsuarioActual}
+                                  onClick={() => cambiarRolUsuario(u)}
+                                >
+                                  <i className="bi bi-arrow-left-right me-1"></i>
+                                  Cambiar a {u.rol === 'admin' ? 'Cliente' : 'Admin'}
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-outline-danger"
+                                  disabled={esUsuarioActual}
+                                  title="Eliminar cuenta"
+                                  onClick={() => setUsuarioAEliminar(u)}
+                                >
+                                  <i className="bi bi-trash me-1"></i>Eliminar
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -692,7 +771,7 @@ export default function AdminPage() {
               <div>
                 <h5 className="fw-bold mb-1">Consultas y Reservas de Sala (ms-contacto)</h5>
                 <small className="text-muted">
-                  Aprueba y responde las consultas enviadas por los usuarios.
+                  Aprueba, desaprueba y responde las consultas enviadas por los usuarios.
                 </small>
               </div>
               <button className="btn btn-outline-minimal btn-sm" onClick={cargarTickets}>
@@ -742,25 +821,23 @@ export default function AdminPage() {
                             <strong>Consulta:</strong> {t.mensaje}
                           </small>
                           {t.respuestaAdmin && (
-                            <small className="text-success d-block bg-light p-2 rounded border">
-                              <strong>Respuesta:</strong> {t.respuestaAdmin}
+                            <small
+                              className={`d-block bg-light p-2 rounded border ${
+                                t.estado === 'DESAPROBADA' ? 'text-danger' : 'text-success'
+                              }`}
+                            >
+                              <strong>Respuesta Admin:</strong> {t.respuestaAdmin}
                             </small>
                           )}
                         </td>
-                        <td>
-                          {t.estado === 'RESPONDIDA' ? (
-                            <span className="badge bg-success">RESPONDIDA</span>
-                          ) : (
-                            <span className="badge bg-warning text-dark">PENDIENTE</span>
-                          )}
-                        </td>
+                        <td>{renderBadgeEstadoTicket(t.estado)}</td>
                         <td className="text-end">
                           <button
                             className="btn btn-sm btn-minimal"
                             onClick={() => abrirModalResponder(t)}
                           >
-                            <i className="bi bi-reply me-1"></i>
-                            {t.estado === 'RESPONDIDA' ? 'Editar Respuesta' : 'Responder y Aprobar'}
+                            <i className="bi bi-check2-square me-1"></i>
+                            {t.estado === 'PENDIENTE' ? 'Revisar / Resolver' : 'Editar Resolución'}
                           </button>
                         </td>
                       </tr>
@@ -836,7 +913,7 @@ export default function AdminPage() {
         )}
       </main>
 
-      {/* Modal Responder Consulta al Usuario */}
+      {/* Modal Aprobar / Desaprobar Consulta al Usuario */}
       {ticketAResponder && (
         <div
           className="modal fade show d-block"
@@ -847,7 +924,7 @@ export default function AdminPage() {
             <div className="modal-content border-0 shadow-lg">
               <div className="modal-header">
                 <h5 className="modal-title fw-bold">
-                  Responder Consulta #{ticketAResponder.ticket}
+                  Gestionar Consulta #{ticketAResponder.ticket}
                 </h5>
                 <button
                   type="button"
@@ -855,52 +932,113 @@ export default function AdminPage() {
                   onClick={() => setTicketAResponder(null)}
                 ></button>
               </div>
-              <form onSubmit={enviarRespuestaTicket} noValidate>
-                <div className="modal-body">
-                  <div className="bg-light p-3 rounded border mb-3 small">
-                    <div className="mb-1">
-                      <strong>Cliente:</strong> {ticketAResponder.nombre} ({ticketAResponder.email})
-                    </div>
-                    <div>
-                      <strong>Consulta:</strong> {ticketAResponder.mensaje}
-                    </div>
+              <div className="modal-body">
+                <div className="bg-light p-3 rounded border mb-3 small">
+                  <div className="mb-1">
+                    <strong>Cliente:</strong> {ticketAResponder.nombre} ({ticketAResponder.email})
                   </div>
-
-                  <label className="form-label small fw-bold">
-                    Comentario de respuesta para el usuario
-                  </label>
-                  <textarea
-                    className={`form-control ${errorRespuesta ? 'is-invalid' : ''}`}
-                    rows={4}
-                    placeholder="Escribe aquí tu respuesta o confirmación de sala..."
-                    value={textoRespuesta}
-                    onChange={(e) => {
-                      setTextoRespuesta(e.target.value);
-                      setErrorRespuesta('');
-                    }}
-                  ></textarea>
-                  {errorRespuesta && (
-                    <div className="invalid-feedback d-block">{errorRespuesta}</div>
-                  )}
+                  <div className="mb-1">
+                    <strong>Tipo:</strong> {ticketAResponder.tipoConsulta}
+                  </div>
+                  <div>
+                    <strong>Consulta:</strong> {ticketAResponder.mensaje}
+                  </div>
                 </div>
-                <div className="modal-footer">
+
+                <label className="form-label small fw-bold">
+                  Respuesta o motivo de resolución para el usuario
+                </label>
+                <textarea
+                  className={`form-control ${errorRespuesta ? 'is-invalid' : ''}`}
+                  rows={4}
+                  placeholder="Escribe aquí la confirmación o el motivo de rechazo..."
+                  value={textoRespuesta}
+                  onChange={(e) => {
+                    setTextoRespuesta(e.target.value);
+                    setErrorRespuesta('');
+                  }}
+                ></textarea>
+                {errorRespuesta && (
+                  <div className="invalid-feedback d-block">{errorRespuesta}</div>
+                )}
+              </div>
+              <div className="modal-footer justify-content-between">
+                <button
+                  type="button"
+                  className="btn btn-outline-minimal"
+                  onClick={() => setTicketAResponder(null)}
+                  disabled={enviandoRespuesta}
+                >
+                  Cancelar
+                </button>
+                <div className="d-flex gap-2">
                   <button
                     type="button"
-                    className="btn btn-outline-minimal"
-                    onClick={() => setTicketAResponder(null)}
+                    className="btn btn-danger"
                     disabled={enviandoRespuesta}
+                    onClick={() => resolverConsulta('DESAPROBADA')}
                   >
-                    Cancelar
+                    <i className="bi bi-x-circle me-1"></i>Desaprobar
                   </button>
                   <button
-                    type="submit"
-                    className="btn btn-minimal"
+                    type="button"
+                    className="btn btn-success"
                     disabled={enviandoRespuesta}
+                    onClick={() => resolverConsulta('APROBADA')}
                   >
-                    {enviandoRespuesta ? 'Enviando...' : 'Enviar Respuesta y Aprobar'}
+                    <i className="bi bi-check-circle me-1"></i>Aprobar
                   </button>
                 </div>
-              </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmar Eliminación de Usuario */}
+      {usuarioAEliminar && (
+        <div
+          className="modal fade show d-block"
+          tabIndex={-1}
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }}
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow-lg">
+              <div className="modal-header border-0">
+                <h5 className="modal-title fw-bold text-danger">
+                  <i className="bi bi-person-x-fill me-2"></i>Eliminar Cuenta de Usuario
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setUsuarioAEliminar(null)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <p className="mb-1">
+                  ¿Estás seguro de que deseas eliminar permanentemente la cuenta de{' '}
+                  <strong>{usuarioAEliminar.nombre}</strong> ({usuarioAEliminar.email})?
+                </p>
+                <small className="text-muted">
+                  Esta acción eliminará el usuario de la base de datos en MySQL y no se puede deshacer.
+                </small>
+              </div>
+              <div className="modal-footer border-0">
+                <button
+                  type="button"
+                  className="btn btn-outline-minimal"
+                  onClick={() => setUsuarioAEliminar(null)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={confirmarEliminarUsuario}
+                >
+                  Sí, eliminar cuenta
+                </button>
+              </div>
             </div>
           </div>
         </div>

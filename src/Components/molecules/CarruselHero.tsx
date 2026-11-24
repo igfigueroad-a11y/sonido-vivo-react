@@ -86,41 +86,7 @@ export default function CarruselHero({
         </div>
       </div>
 
-      {/* Barra de accesos rápidos por categoría */}
-      <div className="card card-minimal p-3">
-        <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-          <span className="small fw-bold text-secondary text-uppercase">
-            <i className="bi bi-tags me-1"></i>Explorar por categoría
-          </span>
-          {categoriaActiva && (
-            <button
-              type="button"
-              className="btn btn-link btn-sm text-decoration-none p-0 text-dark fw-semibold"
-              onClick={() => onSeleccionarCategoria('')}
-            >
-              Ver todas
-            </button>
-          )}
-        </div>
-        <div className="d-flex flex-wrap gap-2">
-          {CATEGORIAS_RAPIDAS.map((cat) => {
-            const activa = categoriaActiva === cat.nombre;
-            return (
-              <button
-                key={cat.nombre}
-                type="button"
-                className={`btn btn-sm ${
-                  activa ? 'btn-minimal' : 'btn-outline-minimal bg-white'
-                }`}
-                onClick={() => handleClickCategoria(cat.nombre)}
-              >
-                <i className={`bi ${cat.icono} me-1`}></i>
-                {cat.nombre}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+        
     </section>
   );
 }

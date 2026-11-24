@@ -10,9 +10,12 @@ import {
 import { productosIniciales } from '../data/productosDb';
 import type { producto, ItemCarrito } from '../types';
 
-interface UsuarioSesion {
+export interface UsuarioSesion {
+  id?: number;
   nombre: string;
+  email?: string;
   rol: 'admin' | 'cliente';
+  token?: string;
 }
 
 export type TipoToast = 'success' | 'error' | 'warning' | 'info';
@@ -29,6 +32,7 @@ interface TiendaContextType {
   cargandoCatalogo: boolean;
   recargarProductos: () => Promise<void>;
   usuarioActual: UsuarioSesion | null;
+  token: string | null;
   login: (datosUsuario: UsuarioSesion) => void;
   logout: () => void;
   carrito: ItemCarrito[];
@@ -74,7 +78,6 @@ export function TiendaProvider({ children }: { children: ReactNode }) {
       const res = await fetch('http://localhost:8082/api/productos');
       if (res.ok) {
         const data: producto[] = await res.json();
-        // Ajusta stock visual según lo que ya está en el carrito local
         const carritoLocal: ItemCarrito[] = JSON.parse(
           localStorage.getItem('sonidovivo_carrito') || '[]',
         );
@@ -101,27 +104,38 @@ export function TiendaProvider({ children }: { children: ReactNode }) {
     useState<UsuarioSesion | null>(() => {
       const nombre = localStorage.getItem('usuarioAutenticado');
       const rol = localStorage.getItem('rolUsuario');
+      const tokenGuardado = localStorage.getItem('tokenJWT') || undefined;
+      const emailGuardado = localStorage.getItem('emailUsuario') || undefined;
 
       if (!nombre || (rol !== 'admin' && rol !== 'cliente')) {
         return null;
       }
 
-      return { nombre, rol };
+      return { nombre, rol, token: tokenGuardado, email: emailGuardado };
     });
 
   const login = (datosUsuario: UsuarioSesion) => {
     localStorage.setItem('usuarioAutenticado', datosUsuario.nombre);
     localStorage.setItem('rolUsuario', datosUsuario.rol);
+    if (datosUsuario.email) {
+      localStorage.setItem('emailUsuario', datosUsuario.email);
+    }
+    if (datosUsuario.token) {
+      localStorage.setItem('tokenJWT', datosUsuario.token);
+    }
     setUsuarioActual(datosUsuario);
   };
 
   const logout = () => {
     localStorage.removeItem('usuarioAutenticado');
     localStorage.removeItem('rolUsuario');
+    localStorage.removeItem('emailUsuario');
+    localStorage.removeItem('tokenJWT');
     setUsuarioActual(null);
     mostrarToast('Sesión cerrada correctamente.', 'info');
   };
-const agregarAlCarrito = (prod: producto) => {
+
+  const agregarAlCarrito = (prod: producto) => {
     if (usuarioActual?.rol === 'admin') {
       mostrarToast(
         'No puedes comprar con una cuenta de administrador. Crea una cuenta personal de cliente para realizar compras.',
@@ -151,6 +165,7 @@ const agregarAlCarrito = (prod: producto) => {
 
     mostrarToast(`${prod.marca} ${prod.modelo} agregado al carrito.`, 'success');
   };
+
   const cambiarCantidadCarrito = (codigo: string, cambio: number) => {
     const productoBase = productos.find((p) => p.codigo === codigo);
     const itemCarrito = carrito.find((i) => i.codigo === codigo);
@@ -209,6 +224,7 @@ const agregarAlCarrito = (prod: producto) => {
         cargandoCatalogo,
         recargarProductos,
         usuarioActual,
+        token: usuarioActual?.token || localStorage.getItem('tokenJWT'),
         login,
         logout,
         carrito,

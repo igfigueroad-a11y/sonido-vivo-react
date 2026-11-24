@@ -39,7 +39,7 @@ interface OrdenCompra {
 }
 
 export default function MisPedidosPage() {
-  const { usuarioActual, carrito, cambiarCantidadCarrito, mostrarToast } =
+  const { usuarioActual, token, logout, carrito, cambiarCantidadCarrito, mostrarToast } =
     useContext(TiendaContext);
   const location = useLocation();
   const navigate = useNavigate();
@@ -57,11 +57,23 @@ export default function MisPedidosPage() {
     }
 
     const cargarPedidos = async () => {
+      const jwt = token || localStorage.getItem('tokenJWT') || '';
       setCargando(true);
       try {
         const res = await fetch(
           `http://localhost:8083/api/ordenes/usuario/${encodeURIComponent(usuarioActual.nombre)}`,
+          {
+            headers: {
+              ...(jwt ? { Authorization: `Bearer ${jwt}` } : {}),
+            },
+          },
         );
+        if (res.status === 401 || res.status === 403) {
+          mostrarToast('Tu sesión expiró. Vuelve a iniciar sesión.', 'warning');
+          logout();
+          navigate('/login');
+          return;
+        }
         if (res.ok) {
           const data: OrdenCompra[] = await res.json();
           setOrdenes(data);
@@ -77,7 +89,7 @@ export default function MisPedidosPage() {
     };
 
     cargarPedidos();
-  }, [usuarioActual, navigate, mostrarToast]);
+  }, [usuarioActual, token, logout, navigate, mostrarToast]);
 
   return (
     <div style={{ backgroundColor: 'var(--bg-main)', minHeight: '100vh' }}>
